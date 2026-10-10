@@ -1,7 +1,7 @@
-CREATE DATABASE symbol_random_game
+CREATE DATABASE symbol_random_game_bd
 WITH OWNER = postgres ENCODING = 'UTF8';
 
-\c symbol_random_game;
+\c symbol_random_game_bd;
 
 CREATE TYPE momento_mensaje AS ENUM ('inicio','fin','pausa');
 
@@ -130,9 +130,23 @@ CREATE TABLE chat_mensaje (
     CHECK(length(trim(contenido)) > 0)
 );
 
+CREATE TABLE chat_lectura (
+    id_usuario INT NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    id_amigo INT NOT NULL REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    ultimo_mensaje_visto BIGINT NOT NULL DEFAULT 0,
+    fecha_actualizacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(id_usuario,id_amigo),
+    CHECK(id_usuario <> id_amigo),
+    CHECK(ultimo_mensaje_visto >= 0)
+);
+
 CREATE INDEX ix_chat_participantes ON chat_mensaje(id_emisor,id_receptor,fecha_envio);
 CREATE INDEX ix_partida_usuario ON partida(id_usuario,fecha_fin DESC);
 CREATE INDEX ix_puntuacion_resultado ON puntuacion(resultado DESC);
 CREATE INDEX ix_amistad_solicitudes ON amistad(id_solicitante,estado,fecha_actualizacion DESC);
 CREATE INDEX ix_resena_perfil ON resena_perfil(id_perfil,fecha_creacion DESC);
 CREATE INDEX ix_chat_receptor ON chat_mensaje(id_receptor,id_emisor,fecha_envio);
+CREATE INDEX ix_chat_mensaje_no_vistos
+    ON chat_mensaje(id_receptor,id_emisor,id_mensaje);
+
+\ir seeds/001_test_data.sql

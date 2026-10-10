@@ -25,12 +25,13 @@ public class ChatController {
     }
 
     @GetMapping
+    @Transactional
     public List<MensajeResponse> obtener(
             @PathVariable int idUsuario,
             @PathVariable int idAmigo
     ) {
         validarAmistad(idUsuario, idAmigo);
-        return jdbcTemplate.query(
+        var messages = jdbcTemplate.query(
                 """
                 SELECT m.id_mensaje, m.id_emisor, u.nombre_uso AS emisor,
                        m.contenido, m.fecha_envio
@@ -49,6 +50,28 @@ public class ChatController {
                 ),
                 idUsuario, idAmigo, idAmigo, idUsuario
         );
+        long lastViewedMessageId = messages.stream()
+                .filter(message -> message.idEmisor() == idAmigo)
+                .mapToLong(MensajeResponse::idMensaje)
+                .max()
+                .orElse(0);
+        jdbcTemplate.update(
+                """
+                INSERT INTO chat_lectura (
+                    id_usuario, id_amigo, ultimo_mensaje_visto, fecha_actualizacion
+                ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT (id_usuario, id_amigo) DO UPDATE
+                SET ultimo_mensaje_visto = GREATEST(
+                        chat_lectura.ultimo_mensaje_visto,
+                        EXCLUDED.ultimo_mensaje_visto
+                    ),
+                    fecha_actualizacion = CURRENT_TIMESTAMP
+                """,
+                idUsuario,
+                idAmigo,
+                lastViewedMessageId
+        );
+        return messages;
     }
 
     @PostMapping

@@ -243,7 +243,8 @@ class _LoginScreenState extends State<LoginScreen> {
             : 'Ese usuario no existe.';
       } else if (status == 409) {
         titulo = 'USUARIO EN USO';
-        mensaje = 'Ese nombre de usuario ya está registrado.';
+        mensaje =
+            'Ya existe una cuenta con ese nombre. Prueba con otro nombre de usuario.';
       } else if (status != null && status >= 500) {
         titulo = 'ERROR DEL SERVIDOR';
         mensaje = 'El servidor tuvo un problema. Inténtalo más tarde.';

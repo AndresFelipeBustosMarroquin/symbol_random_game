@@ -3,6 +3,7 @@ package com.symbolrandomgame.backend.application.service;
 import com.symbolrandomgame.backend.application.port.in.UsuarioUseCase;
 import com.symbolrandomgame.backend.application.port.out.UsuarioRepositoryPort;
 import com.symbolrandomgame.backend.domain.model.Usuario;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -35,16 +36,19 @@ public class UsuarioService implements UsuarioUseCase {
 
     @Override
     public Usuario crear(Usuario usuario) {
-        if (usuarioRepositoryPort
-                .obtenerPorNombreUso(usuario.getNombreUso())
-                .isPresent()) {
-
-            throw new RuntimeException(
-                    "El nombre de usuario ya está registrado"
-            );
+        String nombreUso = usuario.getNombreUso();
+        if (usuarioRepositoryPort.obtenerPorNombreUso(nombreUso).isPresent()) {
+            throw new NombreUsuarioDuplicadoException(nombreUso);
         }
 
-        return usuarioRepositoryPort.guardar(usuario);
+        try {
+            return usuarioRepositoryPort.guardar(usuario);
+        } catch (DataIntegrityViolationException exception) {
+            if (usuarioRepositoryPort.obtenerPorNombreUso(nombreUso).isPresent()) {
+                throw new NombreUsuarioDuplicadoException(nombreUso, exception);
+            }
+            throw exception;
+        }
     }
 
     @Override

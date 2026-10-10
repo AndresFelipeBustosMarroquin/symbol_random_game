@@ -2,6 +2,7 @@ package com.symbolrandomgame.backend.application.service;
 
 import com.symbolrandomgame.backend.application.port.out.UsuarioRepositoryPort;
 import com.symbolrandomgame.backend.domain.model.Usuario;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -37,6 +38,42 @@ class UsuarioServiceTest {
         assertNull(repository.deletedUserId);
     }
 
+    @Test
+    void informaComoDuplicadoUnNombreDeUsuarioExistente() {
+        var repository = new FakeUsuarioRepository();
+        var service = new UsuarioService(repository);
+        var usuario = new Usuario(
+                null,
+                "Jugador",
+                "otra-clave",
+                LocalDate.of(2001, 2, 3)
+        );
+
+        assertThrows(
+                NombreUsuarioDuplicadoException.class,
+                () -> service.crear(usuario)
+        );
+        assertNull(repository.savedUser);
+    }
+
+    @Test
+    void convierteEnConflictoUnaColisionDeUnicidadDuranteElGuardado() {
+        var repository = new FakeUsuarioRepository();
+        repository.usernameAppearsOnSave = true;
+        var service = new UsuarioService(repository);
+        var usuario = new Usuario(
+                null,
+                "NuevoJugador",
+                "clave-segura",
+                LocalDate.of(2001, 2, 3)
+        );
+
+        assertThrows(
+                NombreUsuarioDuplicadoException.class,
+                () -> service.crear(usuario)
+        );
+    }
+
     private static final class FakeUsuarioRepository
             implements UsuarioRepositoryPort {
 
@@ -47,6 +84,9 @@ class UsuarioServiceTest {
                 LocalDate.of(2000, 1, 1)
         );
         private Integer deletedUserId;
+        private Usuario savedUser;
+        private boolean usernameAppearsOnSave;
+        private boolean saveAttempted;
 
         @Override
         public List<Usuario> obtenerTodos() {
@@ -62,6 +102,10 @@ class UsuarioServiceTest {
 
         @Override
         public Optional<Usuario> obtenerPorNombreUso(String nombreUso) {
+            if (usernameAppearsOnSave && saveAttempted
+                    && "NuevoJugador".equals(nombreUso)) {
+                return Optional.of(usuario);
+            }
             return usuario.getNombreUso().equals(nombreUso)
                     ? Optional.of(usuario)
                     : Optional.empty();
@@ -69,6 +113,11 @@ class UsuarioServiceTest {
 
         @Override
         public Usuario guardar(Usuario usuario) {
+            saveAttempted = true;
+            if (usernameAppearsOnSave) {
+                throw new DataIntegrityViolationException("unique username");
+            }
+            savedUser = usuario;
             return usuario;
         }
 

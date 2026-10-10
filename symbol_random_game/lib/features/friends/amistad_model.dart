@@ -5,17 +5,20 @@ class PersonaAmistad {
     required this.idUsuario,
     required this.nombreUso,
     required this.avatar,
+    this.mensajesNoVistos = 0,
   });
 
   final int idUsuario;
   final String nombreUso;
   final String avatar;
+  final int mensajesNoVistos;
 
   factory PersonaAmistad.fromJson(Map<String, dynamic> json) {
     return PersonaAmistad(
       idUsuario: (json['idUsuario'] as num).toInt(),
       nombreUso: json['nombreUso'] as String,
       avatar: json['avatar'] as String,
+      mensajesNoVistos: (json['mensajesNoVistos'] as num?)?.toInt() ?? 0,
     );
   }
 

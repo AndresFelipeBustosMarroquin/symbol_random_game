@@ -1,6 +1,7 @@
 package com.symbolrandomgame.backend.infrastructure.adapter.in;
 
 import com.symbolrandomgame.backend.application.port.in.UsuarioUseCase;
+import com.symbolrandomgame.backend.application.service.NombreUsuarioDuplicadoException;
 import com.symbolrandomgame.backend.domain.model.Usuario;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,14 @@ public class UsuarioController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Usuario crear(@RequestBody Usuario usuario) {
-        return usuarioUseCase.crear(usuario);
+        try {
+            return usuarioUseCase.crear(usuario);
+        } catch (NombreUsuarioDuplicadoException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El nombre de usuario ya está registrado"
+            );
+        }
     }
 
     @PostMapping("/login")

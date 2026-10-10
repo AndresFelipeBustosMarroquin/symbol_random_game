@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:symbol_random_game/core/app_fonts.dart';
@@ -7,13 +8,15 @@ import 'package:symbol_random_game/core/responsive_layout.dart';
 import 'package:symbol_random_game/core/config/app_config.dart';
 import 'package:symbol_random_game/features/game/game_screen.dart'
     show GameMode, GameModeX;
+import 'package:symbol_random_game/features/friends/amistad_service.dart';
 import 'package:symbol_random_game/features/leaderboard/score_service.dart';
 import 'package:symbol_random_game/features/profile/profile_screen.dart';
+import 'package:symbol_random_game/shared/app_snack.dart';
 import 'package:symbol_random_game/shared/static_background.dart';
 
 const _maxContentWidth = 760.0;
 const _pagePadding = 28.0;
-const _tableMinWidth = 640.0;
+const _tableMinWidth = 700.0;
 const _rowHeight = 44.0;
 const _headerHeight = 44.0;
 const _rankWidth = 38.0;
@@ -33,6 +36,7 @@ String _formatTime(int seconds) {
 
 class ScoreEntry {
   const ScoreEntry({
+    this.idPuntuacion = 0,
     this.idUsuario = 0,
     required this.jugador,
     required this.modo,
@@ -44,6 +48,7 @@ class ScoreEntry {
     required this.edad,
   });
 
+  final int idPuntuacion;
   final int idUsuario;
   final String jugador;
   final GameMode modo;
@@ -55,15 +60,22 @@ class ScoreEntry {
   final int edad;
 
   factory ScoreEntry.fromJson(Map<String, dynamic> json) {
-    final modeName = (json['modo'] as String).trim().toUpperCase();
+    final originalModeName = (json['modo'] as String).trim().toUpperCase();
+    final modeName = originalModeName
+        .replaceAll('Ú', 'U')
+        .replaceAll('Ó', 'O')
+        .replaceAll(RegExp('[^A-Z]'), '');
     final mode = switch (modeName) {
-      'NÚMEROS' || 'NUMEROS' => GameMode.numbers,
+      'NUMEROS' || 'NMEROS' => GameMode.numbers,
       'CARACTERES' => GameMode.characters,
-      'SÍMBOLOS' || 'SIMBOLOS' => GameMode.symbols,
+      'SIMBOLOS' || 'SMBOLOS' => GameMode.symbols,
       'OPERACIONES' => GameMode.operations,
-      _ => throw FormatException('Modo de juego desconocido: $modeName'),
+      _ => throw FormatException(
+        'Modo de juego desconocido: $originalModeName',
+      ),
     };
     return ScoreEntry(
+      idPuntuacion: (json['idPuntuacion'] as num?)?.toInt() ?? 0,
       idUsuario: (json['idUsuario'] as num?)?.toInt() ?? 0,
       jugador: json['jugador'] as String,
       modo: mode,
@@ -109,6 +121,7 @@ class ScoreScreen extends StatefulWidget {
 
 class _ScoreScreenState extends State<ScoreScreen> {
   final ScoreService _scoreService = ScoreService();
+  final AmistadService _amistadService = AmistadService();
   final Listenable _appearance = Listenable.merge([
     AppColors.paletteNotifier,
     AppFonts.notifier,
@@ -118,6 +131,8 @@ class _ScoreScreenState extends State<ScoreScreen> {
   GameMode? _modo;
   int _incremento = _allIncremento;
   _SortBy _sort = _SortBy.resultado;
+  final Set<int> _friendRequestsInFlight = {};
+  final Set<int> _friendRequestsSent = {};
 
   @override
   void initState() {
@@ -136,6 +151,73 @@ class _ScoreScreenState extends State<ScoreScreen> {
   Future<void> _retry() async {
     HapticFeedback.selectionClick();
     setState(_loadScores);
+  }
+
+  Future<void> _sendFriendRequest(int targetId) async {
+    final viewerId = widget.viewerId;
+    if (viewerId == null ||
+        targetId <= 0 ||
+        _friendRequestsSent.contains(targetId) ||
+        !_friendRequestsInFlight.add(targetId)) {
+      return;
+    }
+    setState(() {});
+    try {
+      await _amistadService.solicitar(viewerId, targetId);
+      if (!mounted) return;
+      setState(() => _friendRequestsSent.add(targetId));
+      AppSnack.success(
+        context,
+        message: 'Solicitud de amistad enviada.',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error is DioException &&
+              error.response?.statusCode == 409
+          ? 'Ya existe una solicitud o amistad con esta cuenta.'
+          : 'No se pudo enviar la solicitud: $error';
+      AppSnack.error(context, message: message);
+    } finally {
+      _friendRequestsInFlight.remove(targetId);
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _deleteScore(ScoreEntry score) async {
+    final viewerId = widget.viewerId;
+    if (viewerId == null || score.idPuntuacion <= 0) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Eliminar puntuación?'),
+        content: const Text(
+          'Esta acción eliminará la puntuación y no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCELAR'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ELIMINAR'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _scoreService.eliminar(score.idPuntuacion, viewerId);
+      if (!mounted) return;
+      AppSnack.success(context, message: 'Puntuación eliminada.');
+      setState(_loadScores);
+    } catch (error) {
+      if (!mounted) return;
+      AppSnack.error(
+        context,
+        message: 'No se pudo eliminar la puntuación: $error',
+      );
+    }
   }
 
   bool get _hasFilters =>
@@ -183,8 +265,8 @@ class _ScoreScreenState extends State<ScoreScreen> {
             child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final desktop = constraints.maxWidth >=
-                      desktopLayoutBreakpoint;
+                  final desktop =
+                      constraints.maxWidth >= desktopLayoutBreakpoint;
                   return Center(
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
@@ -204,9 +286,7 @@ class _ScoreScreenState extends State<ScoreScreen> {
                               ),
                             )
                           : SingleChildScrollView(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 24,
-                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 24),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -260,6 +340,10 @@ class _ScoreScreenState extends State<ScoreScreen> {
                     rows: rows,
                     showMedals: _sort == _SortBy.resultado,
                     viewerId: widget.viewerId,
+                    friendRequestsInFlight: _friendRequestsInFlight,
+                    friendRequestsSent: _friendRequestsSent,
+                    onDelete: _deleteScore,
+                    onFriendRequest: _sendFriendRequest,
                     expand: true,
                   ),
                 ),
@@ -271,6 +355,10 @@ class _ScoreScreenState extends State<ScoreScreen> {
                   rows: rows,
                   showMedals: _sort == _SortBy.resultado,
                   viewerId: widget.viewerId,
+                  friendRequestsInFlight: _friendRequestsInFlight,
+                  friendRequestsSent: _friendRequestsSent,
+                  onDelete: _deleteScore,
+                  onFriendRequest: _sendFriendRequest,
                 ),
               ),
           ],
@@ -591,12 +679,20 @@ class _ScoreTable extends StatelessWidget {
     required this.rows,
     required this.showMedals,
     required this.viewerId,
+    required this.friendRequestsInFlight,
+    required this.friendRequestsSent,
+    required this.onDelete,
+    required this.onFriendRequest,
     this.expand = false,
   });
 
   final List<ScoreEntry> rows;
   final bool showMedals;
   final int? viewerId;
+  final Set<int> friendRequestsInFlight;
+  final Set<int> friendRequestsSent;
+  final Future<void> Function(ScoreEntry) onDelete;
+  final Future<void> Function(int) onFriendRequest;
   final bool expand;
 
   @override
@@ -637,6 +733,10 @@ class _ScoreTable extends StatelessWidget {
                               entry: rows[index],
                               showMedals: showMedals,
                               viewerId: viewerId,
+                              friendRequestsInFlight: friendRequestsInFlight,
+                              friendRequestsSent: friendRequestsSent,
+                              onDelete: onDelete,
+                              onFriendRequest: onFriendRequest,
                             ),
                           ),
                   ),
@@ -718,6 +818,7 @@ class _TableHeader extends StatelessWidget {
                   style: style,
                 ),
               ),
+              const SizedBox(width: 42),
             ],
           ),
         );
@@ -732,12 +833,20 @@ class _ScoreRow extends StatelessWidget {
     required this.entry,
     required this.showMedals,
     required this.viewerId,
+    required this.friendRequestsInFlight,
+    required this.friendRequestsSent,
+    required this.onDelete,
+    required this.onFriendRequest,
   });
 
   final int rank;
   final ScoreEntry entry;
   final bool showMedals;
   final int? viewerId;
+  final Set<int> friendRequestsInFlight;
+  final Set<int> friendRequestsSent;
+  final Future<void> Function(ScoreEntry) onDelete;
+  final Future<void> Function(int) onFriendRequest;
 
   void _openProfile(BuildContext context) {
     if (entry.idUsuario <= 0) return;
@@ -910,6 +1019,53 @@ class _ScoreRow extends StatelessWidget {
                 fontSize: 18,
               ),
             ),
+          ),
+          SizedBox(
+            width: 42,
+            child: viewerId == null
+                ? null
+                : entry.idUsuario == viewerId
+                ? IconButton(
+                    tooltip: 'Eliminar mi puntuación',
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: entry.idPuntuacion <= 0
+                        ? null
+                        : () => onDelete(entry),
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.redAccent,
+                      size: 19,
+                    ),
+                  )
+                : friendRequestsSent.contains(entry.idUsuario)
+                ? const Tooltip(
+                    message: 'Solicitud enviada',
+                    child: Icon(
+                      Icons.check_circle_outline_rounded,
+                      color: Colors.greenAccent,
+                      size: 19,
+                    ),
+                  )
+                : friendRequestsInFlight.contains(entry.idUsuario)
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    tooltip: 'Enviar solicitud de amistad',
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: entry.idUsuario <= 0
+                        ? null
+                        : () => onFriendRequest(entry.idUsuario),
+                    icon: const Icon(
+                      Icons.person_add_alt_1_rounded,
+                      color: Colors.greenAccent,
+                      size: 19,
+                    ),
+                  ),
           ),
         ],
       ),

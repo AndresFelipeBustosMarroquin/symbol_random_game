@@ -28,22 +28,31 @@ public class AmistadController {
         validarUsuario(idUsuario);
         var amigos = jdbcTemplate.query(
                 """
-                SELECT u.id_usuario, u.nombre_uso, u.avatar
+                SELECT u.id_usuario, u.nombre_uso, u.avatar,
+                       COUNT(m.id_mensaje) AS mensajes_no_vistos
                 FROM amistad a
                 JOIN usuario u ON u.id_usuario = CASE
                     WHEN a.id_usuario_menor = ? THEN a.id_usuario_mayor
                     ELSE a.id_usuario_menor
                 END
+                LEFT JOIN chat_lectura l
+                  ON l.id_usuario = ? AND l.id_amigo = u.id_usuario
+                LEFT JOIN chat_mensaje m
+                  ON m.id_emisor = u.id_usuario
+                 AND m.id_receptor = ?
+                 AND m.id_mensaje > COALESCE(l.ultimo_mensaje_visto, 0)
                 WHERE (a.id_usuario_menor = ? OR a.id_usuario_mayor = ?)
                   AND a.estado = 'ACEPTADA'
+                GROUP BY u.id_usuario, u.nombre_uso, u.avatar
                 ORDER BY lower(u.nombre_uso)
                 """,
                 (rs, row) -> new PersonaAmistad(
                         rs.getInt("id_usuario"),
                         rs.getString("nombre_uso"),
-                        rs.getString("avatar")
+                        rs.getString("avatar"),
+                        rs.getInt("mensajes_no_vistos")
                 ),
-                idUsuario, idUsuario, idUsuario
+                idUsuario, idUsuario, idUsuario, idUsuario, idUsuario
         );
         var recibidas = solicitudes(idUsuario, false);
         var enviadas = solicitudes(idUsuario, true);
@@ -159,7 +168,7 @@ public class AmistadController {
                 : "a.id_solicitante <> ?";
         return jdbcTemplate.query(
                 """
-                SELECT u.id_usuario, u.nombre_uso, u.avatar
+                SELECT u.id_usuario, u.nombre_uso, u.avatar, 0 AS mensajes_no_vistos
                 FROM amistad a
                 JOIN usuario u ON u.id_usuario = CASE
                     WHEN a.id_usuario_menor = ? THEN a.id_usuario_mayor
@@ -173,7 +182,8 @@ public class AmistadController {
                 (rs, row) -> new PersonaAmistad(
                         rs.getInt("id_usuario"),
                         rs.getString("nombre_uso"),
-                        rs.getString("avatar")
+                        rs.getString("avatar"),
+                        rs.getInt("mensajes_no_vistos")
                 ),
                 idUsuario, idUsuario, idUsuario, idUsuario
         );
@@ -201,7 +211,12 @@ public class AmistadController {
         }
     }
 
-    public record PersonaAmistad(int idUsuario, String nombreUso, String avatar) {}
+    public record PersonaAmistad(
+            int idUsuario,
+            String nombreUso,
+            String avatar,
+            int mensajesNoVistos
+    ) {}
 
     public record AmistadesResponse(
             List<PersonaAmistad> amigos,

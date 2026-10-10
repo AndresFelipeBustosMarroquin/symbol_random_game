@@ -252,28 +252,33 @@ class _PressableScaleState extends State<PressableScale> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        setState(() {
-          _scale = 0.95;
-        });
-      },
-      onTapUp: (_) {
-        setState(() {
-          _scale = 1;
-        });
-      },
-      onTapCancel: () {
-        setState(() {
-          _scale = 1;
-        });
-      },
-      onTap: widget.onTap,
-      child: AnimatedScale(
-        scale: _scale,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOut,
-        child: widget.child,
+    return MouseRegion(
+      cursor: widget.onTap == null
+          ? MouseCursor.defer
+          : SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) {
+          setState(() {
+            _scale = 0.95;
+          });
+        },
+        onTapUp: (_) {
+          setState(() {
+            _scale = 1;
+          });
+        },
+        onTapCancel: () {
+          setState(() {
+            _scale = 1;
+          });
+        },
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _scale,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: widget.child,
+        ),
       ),
     );
   }

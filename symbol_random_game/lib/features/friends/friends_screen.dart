@@ -7,6 +7,7 @@ import 'package:symbol_random_game/features/chat/chat_screen.dart';
 import 'package:symbol_random_game/features/profile/profile_screen.dart';
 import 'package:symbol_random_game/features/friends/amistad_model.dart';
 import 'package:symbol_random_game/features/friends/amistad_service.dart';
+import 'package:symbol_random_game/shared/app_snack.dart';
 import 'package:symbol_random_game/shared/static_background.dart';
 
 class FriendsScreen extends StatefulWidget {
@@ -42,11 +43,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
       setState(_load);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No se pudo actualizar la amistad: $error'),
-          backgroundColor: AppColors.card,
-        ),
+      AppSnack.error(
+        context,
+        message: 'No se pudo actualizar la amistad: $error',
       );
     } finally {
       _busyUsers.remove(person.idUsuario);
@@ -88,12 +87,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
-  void _openChat(PersonaAmistad person) {
-    Navigator.of(context).push(
+  Future<void> _openChat(PersonaAmistad person) async {
+    await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ChatScreen(userId: widget.userId, friend: person),
       ),
     );
+    if (mounted) setState(_load);
   }
 
   @override
@@ -142,7 +142,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         future: _friendships,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
+                                  ConnectionState.waiting &&
+                              !snapshot.hasData) {
                             return Center(
                               child: CircularProgressIndicator(
                                 color: AppColors.primaryLight,
@@ -189,47 +190,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 )
                               else
                                 for (final person in data.recibidas)
-                                  _personRow(
+                                  _incomingRequestRow(
                                     person,
-                                    label: 'Quiere ser tu amigo',
-                                    actions: [
-                                      IconButton(
-                                        tooltip: 'Aceptar',
-                                        onPressed: _busyUsers.contains(
-                                          person.idUsuario,
-                                        )
-                                            ? null
-                                            : () => _run(
-                                                  person,
-                                                  () => _service.aceptar(
-                                                    widget.userId,
-                                                    person.idUsuario,
-                                                  ),
-                                                ),
-                                        icon: const Icon(
-                                          Icons.check_circle_rounded,
-                                          color: Colors.greenAccent,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        tooltip: 'Rechazar',
-                                        onPressed: _busyUsers.contains(
-                                          person.idUsuario,
-                                        )
-                                            ? null
-                                            : () => _run(
-                                                  person,
-                                                  () => _service.eliminar(
-                                                    widget.userId,
-                                                    person.idUsuario,
-                                                  ),
-                                                ),
-                                        icon: const Icon(
-                                          Icons.cancel_rounded,
-                                          color: Colors.redAccent,
-                                        ),
-                                      ),
-                                    ],
                                   ),
                               const SizedBox(height: 22),
                               _sectionTitle(
@@ -342,6 +304,146 @@ class _FriendsScreenState extends State<FriendsScreen> {
     ),
   );
 
+  Widget _incomingRequestRow(PersonaAmistad person) {
+    final busy = _busyUsers.contains(person.idUsuario);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: AppColors.card.withValues(alpha: .82),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.primaryLight.withValues(alpha: .5),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: .12),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primary.withValues(alpha: .2),
+                  border: Border.all(
+                    color: AppColors.primaryLight.withValues(alpha: .55),
+                  ),
+                ),
+                child: Text(person.emoji, style: const TextStyle(fontSize: 27)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      person.nombreUso,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.title(fontSize: 15),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Quiere agregarte a sus amistades',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.label(
+                        color: Colors.white60,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.mark_email_unread_rounded,
+                color: AppColors.primaryLight,
+                size: 20,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (busy)
+            const SizedBox(
+              height: 38,
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => _run(
+                      person,
+                      () => _service.aceptar(
+                        widget.userId,
+                        person.idUsuario,
+                      ),
+                    ),
+                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 17),
+                    label: const Text('ACEPTAR'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      textStyle: AppText.label(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: .5,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _run(
+                      person,
+                      () => _service.eliminar(
+                        widget.userId,
+                        person.idUsuario,
+                      ),
+                    ),
+                    icon: const Icon(Icons.close_rounded, size: 17),
+                    label: const Text('RECHAZAR'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      minimumSize: const Size(0, 40),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: .22),
+                      ),
+                      textStyle: AppText.label(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: .5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _personRow(
     PersonaAmistad person, {
     required String label,
@@ -390,6 +492,40 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         ],
                       ),
                     ),
+                    if (person.mensajesNoVistos > 0) ...[
+                      const SizedBox(width: 8),
+                      Semantics(
+                        label:
+                            '${person.mensajesNoVistos} mensajes nuevos sin leer',
+                        child: Container(
+                          constraints: const BoxConstraints(minWidth: 28),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.primaryLight.withValues(
+                                alpha: .7,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            person.mensajesNoVistos > 99
+                                ? '99+'
+                                : '${person.mensajesNoVistos}',
+                            textAlign: TextAlign.center,
+                            style: AppText.label(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

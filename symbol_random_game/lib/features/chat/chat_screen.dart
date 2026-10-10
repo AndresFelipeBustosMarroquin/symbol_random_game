@@ -9,14 +9,11 @@ import 'package:symbol_random_game/core/responsive_layout.dart';
 import 'package:symbol_random_game/features/friends/amistad_model.dart';
 import 'package:symbol_random_game/features/chat/chat_model.dart';
 import 'package:symbol_random_game/features/chat/chat_service.dart';
+import 'package:symbol_random_game/shared/app_snack.dart';
 import 'package:symbol_random_game/shared/static_background.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({
-    super.key,
-    required this.userId,
-    required this.friend,
-  });
+  const ChatScreen({super.key, required this.userId, required this.friend});
 
   final int userId;
   final PersonaAmistad friend;
@@ -69,7 +66,8 @@ class _ChatScreenState extends State<ChatScreen> {
         widget.friend.idUsuario,
       );
       if (!mounted) return;
-      final didChange = messages.length != _messages.length ||
+      final didChange =
+          messages.length != _messages.length ||
           (messages.isNotEmpty &&
               (_messages.isEmpty ||
                   messages.last.idMensaje != _messages.last.idMensaje));
@@ -113,12 +111,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _sending = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No se pudo enviar el mensaje: $error'),
-          backgroundColor: AppColors.card,
-        ),
-      );
+      AppSnack.error(context, message: 'No se pudo enviar el mensaje: $error');
     }
   }
 
@@ -294,10 +287,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 const SizedBox(height: 4),
                 Text(
                   _time(message.fechaEnvio),
-                  style: AppText.label(
-                    color: Colors.white60,
-                    fontSize: 9,
-                  ),
+                  style: AppText.label(color: Colors.white60, fontSize: 9),
                 ),
               ],
             ),

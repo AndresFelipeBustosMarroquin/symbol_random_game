@@ -953,9 +953,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: AppColors.card),
-    );
+    AppSnack.error(context, message: message);
   }
 
   @override

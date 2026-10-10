@@ -5,6 +5,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +26,7 @@ public class PuntuacionController {
 
     private static final String CONSULTA_PUNTUACIONES = """
             SELECT u.id_usuario,
+                   p.id_puntuacion,
                    u.nombre_uso,
                    m.nombre_modo,
                    p.digitos,
@@ -49,9 +53,10 @@ public class PuntuacionController {
         return jdbcTemplate.query(
                 CONSULTA_PUNTUACIONES,
                 (resultSet, rowNumber) -> new PuntuacionResponse(
+                        resultSet.getInt("id_puntuacion"),
                         resultSet.getInt("id_usuario"),
                         resultSet.getString("nombre_uso"),
-                        resultSet.getString("nombre_modo"),
+                        nombreCanonico(resultSet.getString("nombre_modo")),
                         resultSet.getInt("digitos"),
                         resultSet.getInt("vidas_pun"),
                         resultSet.getInt("tiempo_pregunta"),
@@ -63,6 +68,49 @@ public class PuntuacionController {
                         ).getYears()
                 )
         );
+    }
+
+    @DeleteMapping("/{idPuntuacion}")
+    @Transactional
+    public void eliminar(
+            @PathVariable int idPuntuacion,
+            @RequestParam int idUsuario
+    ) {
+        if (idPuntuacion <= 0 || idUsuario <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Los identificadores no son válidos"
+            );
+        }
+        int deleted = jdbcTemplate.update(
+                """
+                DELETE FROM partida
+                WHERE id_partida = (
+                    SELECT id_partida
+                    FROM puntuacion
+                    WHERE id_puntuacion = ? AND id_usuario = ?
+                )
+                """,
+                idPuntuacion,
+                idUsuario
+        );
+        if (deleted == 0) {
+            Integer scoreExists = jdbcTemplate.query(
+                    "SELECT id_puntuacion FROM puntuacion WHERE id_puntuacion = ?",
+                    resultSet -> resultSet.next() ? resultSet.getInt(1) : null,
+                    idPuntuacion
+            );
+            if (scoreExists == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "La puntuación no existe"
+                );
+            }
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Solo puedes eliminar tus propias puntuaciones"
+            );
+        }
     }
 
     @PostMapping
@@ -218,9 +266,15 @@ public class PuntuacionController {
     }
 
     private String normalizar(String value) {
-        return Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+        String normalized = Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
-                .toUpperCase(Locale.ROOT);
+                .toUpperCase(Locale.ROOT)
+                .replaceAll("[^A-Z0-9]", "");
+        return switch (normalized) {
+            case "NMEROS" -> "NUMEROS";
+            case "SMBOLOS" -> "SIMBOLOS";
+            default -> normalized;
+        };
     }
 
     private record NivelReferencia(int id, String nombre) {

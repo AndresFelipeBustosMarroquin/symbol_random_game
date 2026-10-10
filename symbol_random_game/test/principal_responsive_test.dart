@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:symbol_random_game/features/home/principal_screen.dart';
+import 'package:symbol_random_game/features/home/wisdom_verses.dart';
 import 'package:symbol_random_game/features/profile/perfil_model.dart';
 import 'package:symbol_random_game/features/profile/perfil_service.dart';
 
@@ -48,13 +49,16 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: PrincipalScreen(userId: 1, profileService: _FakePerfilService()),
+          home: PrincipalScreen(
+            userId: 1,
+            profileService: _FakePerfilService(),
+          ),
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(seconds: 11));
-
       expect(find.text('MINI GAMES'), findsOneWidget);
+      expect(find.text('UN MOMENTO DE SABIDURÍA'), findsOneWidget);
+      expect(find.textContaining('/50'), findsNothing);
       for (final label in [
         'JUGAR',
         '2 JUGADORES',
@@ -73,6 +77,37 @@ void main() {
     });
   }
 
+  test('home wisdom rotation contains 100 scripture-based reflections', () {
+    expect(wisdomVerses, hasLength(100));
+    expect(
+      wisdomVerses.map((verse) => verse.reference).toSet(),
+      hasLength(100),
+    );
+  });
+
+  testWidgets('home wisdom reflection stays unchanged as time passes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PrincipalScreen(userId: 1, profileService: _FakePerfilService()),
+      ),
+    );
+    final initialVerse = wisdomVerses.firstWhere(
+      (verse) => find.text('“${verse.reflection}”').evaluate().isNotEmpty,
+    );
+
+    await tester.pump(const Duration(seconds: 30));
+
+    expect(find.text('“${initialVerse.reflection}”'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home refreshes profile progress after returning from a game', (
     tester,
   ) async {
@@ -87,6 +122,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final initialVerse = wisdomVerses.firstWhere(
+      (verse) => find.text('“${verse.reflection}”').evaluate().isNotEmpty,
+    );
     expect(find.text('10/100 XP'), findsOneWidget);
     await tester.tap(find.text('JUGAR'));
     await tester.pumpAndSettle();
@@ -97,6 +135,7 @@ void main() {
 
     expect(service.loadCount, 2);
     expect(find.text('25/100 XP'), findsOneWidget);
+    expect(find.text('“${initialVerse.reflection}”'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

@@ -10,6 +10,7 @@ import 'package:symbol_random_game/features/profile/profile_screen.dart';
 import 'package:symbol_random_game/features/leaderboard/score_screen.dart';
 import 'package:symbol_random_game/features/profile/perfil_model.dart';
 import 'package:symbol_random_game/features/profile/perfil_service.dart';
+import 'package:symbol_random_game/features/home/wisdom_verses.dart';
 import 'package:symbol_random_game/shared/static_background.dart';
 
 /// Ancho máximo del contenido: perfil, logo y botones comparten la misma
@@ -17,11 +18,7 @@ import 'package:symbol_random_game/shared/static_background.dart';
 const _contentMaxWidth = 340.0;
 
 class PrincipalScreen extends StatefulWidget {
-  const PrincipalScreen({
-    super.key,
-    required this.userId,
-    this.profileService,
-  });
+  const PrincipalScreen({super.key, required this.userId, this.profileService});
 
   final int userId;
   final PerfilService? profileService;
@@ -31,8 +28,11 @@ class PrincipalScreen extends StatefulWidget {
 }
 
 class _PrincipalScreenState extends State<PrincipalScreen> {
+  static int _lastVerseIndex = -1;
+
   late final _profileService = widget.profileService ?? PerfilService();
   late Future<PerfilUsuario> _profile;
+  late int _verseIndex;
 
   // Se reconstruye cuando cambia la paleta o la fuente.
   final Listenable _appearance = Listenable.merge([
@@ -40,24 +40,45 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
     AppFonts.notifier,
   ]);
 
+  WisdomVerse get _verse => wisdomVerses[_verseIndex];
+
   @override
   void initState() {
     super.initState();
     _profile = _profileService.obtener(widget.userId);
+    _verseIndex = (_lastVerseIndex + 1) % wisdomVerses.length;
+    _lastVerseIndex = _verseIndex;
+    _appearance.addListener(_advanceVerse);
   }
 
-  void _openScore() {
-    Navigator.push(
+  @override
+  void dispose() {
+    _appearance.removeListener(_advanceVerse);
+    super.dispose();
+  }
+
+  void _advanceVerse() {
+    if (mounted) {
+      setState(() {
+        _verseIndex = (_verseIndex + 1) % wisdomVerses.length;
+      });
+    }
+  }
+
+  Future<void> _openScore() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => ScoreScreen(viewerId: widget.userId)),
     );
+    _advanceVerse();
   }
 
-  void _openFriends() {
-    Navigator.push(
+  Future<void> _openFriends() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => FriendsScreen(userId: widget.userId)),
     );
+    _advanceVerse();
   }
 
   Future<void> _openGame() async {
@@ -65,7 +86,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
       context,
       MaterialPageRoute(builder: (_) => ModeScreen(userId: widget.userId)),
     );
-    _refreshProfile();
+    _refreshProfile(advanceVerse: true);
   }
 
   Future<void> _openVersus() async {
@@ -75,33 +96,35 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         builder: (_) => ModeScreen(versus: true, userId: widget.userId),
       ),
     );
-    _refreshProfile();
+    _refreshProfile(advanceVerse: true);
   }
 
-  void _openOptions() {
-    Navigator.push(
+  Future<void> _openOptions() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => OptionsScreen(userId: widget.userId)),
     );
+    _advanceVerse();
   }
 
   Future<void> _openProfile() async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ProfileScreen(
-          userId: widget.userId,
-          viewerId: widget.userId,
-        ),
+        builder: (_) =>
+            ProfileScreen(userId: widget.userId, viewerId: widget.userId),
       ),
     );
-    _refreshProfile();
+    _refreshProfile(advanceVerse: true);
   }
 
-  void _refreshProfile() {
+  void _refreshProfile({bool advanceVerse = false}) {
     if (mounted) {
       setState(() {
         _profile = _profileService.obtener(widget.userId);
+        if (advanceVerse) {
+          _verseIndex = (_verseIndex + 1) % wisdomVerses.length;
+        }
       });
     }
   }
@@ -132,7 +155,7 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     _buildLogo(),
-                                    const SizedBox(height: 16),
+                                    const SizedBox(height: 24),
                                     GradientText(
                                       'MINI GAMES',
                                       style: AppText.display(
@@ -162,6 +185,11 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    _WisdomVerseCard(
+                                      key: ValueKey(_verseIndex),
+                                      verse: _verse,
+                                    ),
+                                    const SizedBox(height: 16),
                                     Row(
                                       children: [
                                         Expanded(
@@ -242,86 +270,95 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                        _buildLogo(),
+                              _buildLogo(),
 
-                        const SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
-                        GradientText(
-                          'MINI GAMES',
-                          style: AppText.display(
-                            fontSize: 42,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 3,
+                              GradientText(
+                                'MINI GAMES',
+                                style: AppText.display(
+                                  fontSize: 42,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 3,
+                                ),
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              _buildSubtitle(),
+
+                              const SizedBox(height: 28),
+
+                              _HomeProfileCard(
+                                profile: _profile,
+                                onTap: _openProfile,
+                                onRetry: () => setState(() {
+                                  _profile = _profileService.obtener(
+                                    widget.userId,
+                                  );
+                                }),
+                              ),
+
+                              const SizedBox(height: 28),
+
+                              _WisdomVerseCard(
+                                key: ValueKey(_verseIndex),
+                                verse: _verse,
+                              ),
+
+                              const SizedBox(height: 26),
+
+                              _MainButton(
+                                onTap: _openGame,
+                                icon: Icons.play_arrow_rounded,
+                                text: 'JUGAR',
+                                filled: true,
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              _MainButton(
+                                onTap: _openVersus,
+                                icon: Icons.people_alt_rounded,
+                                text: '2 JUGADORES',
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              _MainButton(
+                                onTap: _openOptions,
+                                icon: Icons.settings_rounded,
+                                text: 'OPCIONES',
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              _MainButton(
+                                onTap: _openScore,
+                                icon: Icons.emoji_events_rounded,
+                                text: 'PUNTUACIÓN',
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              _MainButton(
+                                onTap: _openFriends,
+                                icon: Icons.people_alt_rounded,
+                                text: 'AMIGOS',
+                              ),
+
+                              const SizedBox(height: 26),
+
+                              _MainButton(
+                                onTap: _logout,
+                                icon: Icons.logout_rounded,
+                                text: 'CERRAR SESIÓN',
+                                danger: true,
+                              ),
+                            ],
                           ),
                         ),
-
-                        const SizedBox(height: 8),
-
-                        _buildSubtitle(),
-
-                        const SizedBox(height: 28),
-
-                        _HomeProfileCard(
-                          profile: _profile,
-                          onTap: _openProfile,
-                          onRetry: () => setState(() {
-                            _profile = _profileService.obtener(widget.userId);
-                          }),
-                        ),
-
-                        const SizedBox(height: 28),
-
-                        _MainButton(
-                          onTap: _openGame,
-                          icon: Icons.play_arrow_rounded,
-                          text: 'JUGAR',
-                          filled: true,
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        _MainButton(
-                          onTap: _openVersus,
-                          icon: Icons.people_alt_rounded,
-                          text: '2 JUGADORES',
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        _MainButton(
-                          onTap: _openOptions,
-                          icon: Icons.settings_rounded,
-                          text: 'OPCIONES',
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        _MainButton(
-                          onTap: _openScore,
-                          icon: Icons.emoji_events_rounded,
-                          text: 'PUNTUACIÓN',
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        _MainButton(
-                          onTap: _openFriends,
-                          icon: Icons.people_alt_rounded,
-                          text: 'AMIGOS',
-                        ),
-
-                        const SizedBox(height: 26),
-
-                        _MainButton(
-                          onTap: _logout,
-                          icon: Icons.logout_rounded,
-                          text: 'CERRAR SESIÓN',
-                          danger: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                      ),
               ),
             ),
           ),
@@ -380,6 +417,105 @@ class _PrincipalScreenState extends State<PrincipalScreen> {
         const SizedBox(width: 12),
         line(),
       ],
+    );
+  }
+}
+
+class _WisdomVerseCard extends StatelessWidget {
+  const _WisdomVerseCard({super.key, required this.verse});
+
+  final WisdomVerse verse;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: AppColors.card.withValues(alpha: .82),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.primaryLight.withValues(alpha: .42),
+          width: 1.2,
+        ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withValues(alpha: .28),
+            AppColors.card.withValues(alpha: .94),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: .16),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: .28),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.auto_awesome_rounded,
+              color: AppColors.primaryLight,
+              size: 19,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'UN MOMENTO DE SABIDURÍA',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.label(
+                          color: AppColors.primaryLight,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: .8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      verse.reference,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.label(
+                        color: Colors.white60,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '“${verse.reflection}”',
+                  style: AppText.title(
+                    fontSize: 14,
+                    color: Colors.white.withValues(alpha: .96),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -748,7 +884,6 @@ class _MainButton extends StatelessWidget {
                   : AppColors.primaryLight,
               size: filled ? 26 : 22,
             ),
-
 
             const SizedBox(width: 10),
 

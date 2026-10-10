@@ -1,6 +1,7 @@
 package com.symbolrandomgame.backend.infrastructure.adapter.in;
 
 public record PuntuacionResponse(
+        int idPuntuacion,
         int idUsuario,
         String jugador,
         String modo,

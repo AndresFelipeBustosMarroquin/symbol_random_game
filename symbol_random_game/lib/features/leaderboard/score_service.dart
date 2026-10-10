@@ -36,4 +36,11 @@ class ScoreService {
       },
     );
   }
+
+  Future<void> eliminar(int idPuntuacion, int idUsuario) async {
+    await _apiClient.dio.delete(
+      '/puntuaciones/$idPuntuacion',
+      queryParameters: {'idUsuario': idUsuario},
+    );
+  }
 }
