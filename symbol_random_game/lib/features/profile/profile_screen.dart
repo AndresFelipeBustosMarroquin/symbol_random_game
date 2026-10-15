@@ -466,7 +466,7 @@ class _ProfileHero extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: onEdit,
             icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-            label: const Text('PERSONALIZAR PERFIL'),
+            label: const Text('PERSONALIZAR'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primaryLight,
               side: BorderSide(
@@ -1052,7 +1052,7 @@ class _ProfileEditorState extends State<_ProfileEditor> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.save_rounded),
-                label: Text(_saving ? 'GUARDANDO...' : 'GUARDAR PERFIL'),
+                label: Text(_saving ? 'GUARDANDO...' : 'GUARDAR'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(52),
                   backgroundColor: AppColors.primary,
