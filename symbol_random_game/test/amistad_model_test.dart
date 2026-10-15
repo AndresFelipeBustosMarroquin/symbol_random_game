@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:symbol_random_game/features/friends/amistad_model.dart';
+import 'package:symbol_random_game/features/friends/domain/amistad_model.dart';
 
 void main() {
   test('reads friends and pending requests from the API response', () {

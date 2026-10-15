@@ -37,14 +37,15 @@ class SocialAndScoreFlowIntegrationTest {
 
     @Test
     void nombreExistenteSeRespondeComoConflictoYNoRestringeContrasenasRepetidas() {
-        String existingName = jdbcTemplate.queryForObject(
-                "SELECT nombre_uso FROM usuario ORDER BY id_usuario LIMIT 1",
-                String.class
-        );
-        String existingPassword = jdbcTemplate.queryForObject(
-                "SELECT contrasena_us FROM usuario ORDER BY id_usuario LIMIT 1",
-                String.class
-        );
+        String existingName = "existing_" + UUID.randomUUID()
+                .toString().replace("-", "");
+        String existingPassword = "shared-password";
+        usuarioController.crear(new Usuario(
+                null,
+                existingName,
+                existingPassword,
+                LocalDate.of(2000, 1, 1)
+        ));
 
         var conflict = assertThrows(
                 ResponseStatusException.class,

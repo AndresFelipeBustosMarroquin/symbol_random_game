@@ -1,9 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:symbol_random_game/features/game/operation_challenge.dart';
-import 'package:symbol_random_game/features/game/game_screen.dart';
-import 'package:symbol_random_game/features/leaderboard/score_screen.dart';
+import 'package:symbol_random_game/features/game/domain/game_mode.dart';
+import 'package:symbol_random_game/features/game/domain/operation_challenge.dart';
+import 'package:symbol_random_game/features/leaderboard/domain/score_entry.dart';
 
 void main() {
   test('operation difficulty progresses from basic through advanced', () {

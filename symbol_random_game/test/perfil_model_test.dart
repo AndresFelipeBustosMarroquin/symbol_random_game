@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:symbol_random_game/features/profile/perfil_model.dart';
+import 'package:symbol_random_game/features/profile/domain/perfil_model.dart';
 
 void main() {
   test('profile maps editable identity, avatar and game statistics', () {

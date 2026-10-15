@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:symbol_random_game/features/chat/chat_model.dart';
+import 'package:symbol_random_game/features/chat/domain/chat_model.dart';
 
 void main() {
   test('parses a persisted chat message from the backend response', () {

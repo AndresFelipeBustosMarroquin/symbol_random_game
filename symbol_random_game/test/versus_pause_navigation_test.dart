@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:symbol_random_game/features/game/game_screen.dart';
-import 'package:symbol_random_game/features/game/versus_screen.dart';
+import 'package:symbol_random_game/features/game/domain/game_mode.dart';
+import 'package:symbol_random_game/features/game/presentation/versus_screen.dart';
 
 void main() {
   testWidgets('duel pause menu returns to the principal route', (tester) async {

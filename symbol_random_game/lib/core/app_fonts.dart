@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppFontOption {
   final String name;
-  final String family; // nombre exacto en Google Fonts
+  final String family;
 
   const AppFontOption(this.name, this.family);
 }
@@ -21,9 +21,6 @@ class AppFonts {
     AppFontOption('Quicksand', 'Quicksand'),
   ];
 
-  /// Índice de la fuente seleccionada. Cambiarlo notifica a todos los
-  /// [AppFontBuilder] para que se reconstruyan con la nueva fuente.
-  /// (Para arrancar con Orbitron, el look original del juego, usa 2.)
   static final ValueNotifier<int> notifier = ValueNotifier<int>(0);
 
   static int get selectedIndex => notifier.value;
@@ -36,7 +33,6 @@ class AppFonts {
     }
   }
 
-  /// Aplica la fuente (la seleccionada o la del [index]) a un estilo base.
   static TextStyle style(TextStyle base, {int? index}) {
     return GoogleFonts.getFont(
       options[index ?? notifier.value].family,
@@ -45,11 +41,6 @@ class AppFonts {
   }
 }
 
-/// Reconstruye su contenido cada vez que cambia la fuente seleccionada.
-///
-/// Úsalo para envolver pantallas completas y también widgets `const`
-/// que contengan texto con [AppText], porque Flutter no reconstruye
-/// los widgets `const` cuando se reconstruye su padre.
 class AppFontBuilder extends StatelessWidget {
   const AppFontBuilder({super.key, required this.builder});
 
@@ -59,7 +50,7 @@ class AppFontBuilder extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: AppFonts.notifier,
-      builder: (context, _, __) => builder(context),
+      builder: (context, _, _) => builder(context),
     );
   }
 }

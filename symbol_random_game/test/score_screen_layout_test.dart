@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:symbol_random_game/features/game/game_screen.dart'
-    show GameMode;
-import 'package:symbol_random_game/features/leaderboard/score_screen.dart';
+import 'package:symbol_random_game/features/game/domain/game_mode.dart';
+import 'package:symbol_random_game/features/leaderboard/domain/score_entry.dart';
+import 'package:symbol_random_game/features/leaderboard/presentation/score_screen.dart';
 
 void main() {
   test('parses game modes whose accents were replaced by question marks', () {

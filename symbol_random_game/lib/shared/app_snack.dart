@@ -4,13 +4,6 @@ import 'package:symbol_random_game/core/app_theme.dart';
 
 enum AppSnackType { success, error, info }
 
-/// Snackbars con el estilo de la app: tarjeta flotante, franja de color,
-/// icono y título. Uso:
-///
-/// ```dart
-/// AppSnack.success(context, title: '¡LISTO!', message: 'Todo salió bien');
-/// AppSnack.error(context, message: 'No se pudo conectar');
-/// ```
 abstract final class AppSnack {
   static void success(
     BuildContext context, {

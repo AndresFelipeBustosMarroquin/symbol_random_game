@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:symbol_random_game/core/app_theme.dart';
-import 'package:symbol_random_game/features/auth/login_screen.dart';
+import 'package:symbol_random_game/features/auth/presentation/login_screen.dart';
 
 void main() {
   runApp(const RandomGameApp());

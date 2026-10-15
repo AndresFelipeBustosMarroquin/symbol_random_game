@@ -1,17 +1,43 @@
-# symbol_random_game
+# Symbol Random Game
 
-A new Flutter project.
+Juego Flutter organizado por features para que pantallas, modelos y acceso a
+datos se encuentren junto a la función a la que pertenecen.
 
-## Getting Started
+## Cómo está organizado
 
-This project is a starting point for a Flutter application.
+```text
+lib/
+  core/       Servicios y configuración usados por varias features
+  features/   Funciones del juego, organizadas por capas
+  shared/     Widgets reutilizables entre pantallas
+  main.dart   Punto de entrada
+test/         Pruebas de modelos, pantallas y flujos
+```
 
-A few resources to get you started if this is your first Flutter project:
+Dentro de una feature:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```text
+features/<nombre>/
+  presentation/  Pantallas e interacción
+  domain/        Modelos y reglas de la función
+  data/          Llamadas a la API y acceso a datos
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Una feature puede omitir capas que no necesita. La interfaz usa los servicios
+de su feature; estos llaman a `core/network/ApiClient`, que centraliza las
+peticiones al backend. `core/` y `shared/` contienen lo que se reutiliza desde
+varias features.
+
+Consulta [la guía de features](lib/features/README.md) para ver la
+responsabilidad de cada carpeta.
+
+## Ejecutar y probar
+
+Desde esta carpeta:
+
+```text
+flutter pub get
+flutter run
+flutter test
+flutter analyze
+```

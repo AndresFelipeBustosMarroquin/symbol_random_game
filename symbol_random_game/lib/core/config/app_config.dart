@@ -1,4 +1,4 @@
-import 'package:symbol_random_game/audio/audio_manager.dart';
+import 'package:symbol_random_game/core/audio/audio_manager.dart';
 
 class GameSettings {
   GameSettings._();
@@ -12,8 +12,6 @@ class GameSettings {
   static int hearts = 1;
   static int time = 5;
 
-  /// true  -> mostrar las opciones antes de iniciar cada juego
-  /// false -> las opciones solo se cambian desde la pantalla de Opciones
   static bool askBeforeGame = false;
 
   static double get volume => AudioManager.volume;
@@ -23,7 +21,5 @@ class GameSettings {
     increment = 1;
     hearts = 1;
     time = 5;
-    // askBeforeGame se deja fuera a propósito: es una preferencia del
-    // usuario, no un valor de partida. Agrégalo aquí si quieres que se reinicie.
   }
 }

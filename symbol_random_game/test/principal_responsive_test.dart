@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:symbol_random_game/features/home/principal_screen.dart';
-import 'package:symbol_random_game/features/home/wisdom_verses.dart';
-import 'package:symbol_random_game/features/profile/perfil_model.dart';
-import 'package:symbol_random_game/features/profile/perfil_service.dart';
+import 'package:symbol_random_game/features/home/presentation/principal_screen.dart';
+import 'package:symbol_random_game/features/home/domain/wisdom_verses.dart';
+import 'package:symbol_random_game/features/profile/domain/perfil_model.dart';
+import 'package:symbol_random_game/features/profile/data/perfil_service.dart';
 
 class _FakePerfilService extends PerfilService {
   PerfilUsuario profile = _profile(10);

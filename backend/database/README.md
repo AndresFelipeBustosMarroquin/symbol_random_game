@@ -1,13 +1,12 @@
 # Database and deployment
 
-The Supabase schema is created separately in the Supabase SQL Editor. The
-application does not migrate data from a local database and Hibernate schema
-generation remains disabled (`spring.jpa.hibernate.ddl-auto=none`).
+The complete database structure is in `symbol_random_game.sql`. Run that file
+in the Supabase SQL Editor when creating a new database. It contains the tables,
+constraints, and indexes used by the API. Hibernate schema generation remains
+disabled (`spring.jpa.hibernate.ddl-auto=none`).
 
-Incremental SQL changes are kept in `migrations/`. The backend initializer
-creates the chat read-state table and required catalogs when absent. Do not
-run the test seed against a public database while account passwords are stored
-in the current legacy format.
+The backend initializer keeps existing deployments compatible and inserts
+required catalogs when absent. No test accounts are created by the schema.
 
 ## Render backend
 

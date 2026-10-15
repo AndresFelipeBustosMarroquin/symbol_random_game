@@ -116,7 +116,6 @@ class AppColors {
   }
 }
 
-/// Degradado principal de una paleta cualquiera (no solo la global).
 extension AppPaletteX on AppPalette {
   LinearGradient get gradient {
     return LinearGradient(
@@ -127,22 +126,15 @@ extension AppPaletteX on AppPalette {
   }
 }
 
-/// Paletas de los dos jugadores en el modo 1 vs 1.
-///
-/// Son independientes de la paleta global de la app ([AppColors]), que sigue
-/// pintando el fondo y el resto de pantallas. Los dos jugadores no pueden
-/// tener la misma paleta, para que siempre se distingan.
 class PlayerPalettes {
   PlayerPalettes._();
 
-  /// Índices en [AppColors.palettes]: jugador 1 = Violeta, jugador 2 = Ámbar.
   static final List<int> _selected = [0, 4];
 
   static int indexOf(int player) => _selected[player];
 
   static AppPalette of(int player) => AppColors.palettes[_selected[player]];
 
-  /// true si [index] ya la tiene el OTRO jugador.
   static bool isTaken(int player, int index) => _selected[1 - player] == index;
 
   static void select(int player, int index) {

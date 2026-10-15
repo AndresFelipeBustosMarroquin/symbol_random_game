@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:symbol_random_game/features/settings/option_screen.dart';
+import 'package:symbol_random_game/features/settings/presentation/option_screen.dart';
 
 void main() {
   for (final size in [

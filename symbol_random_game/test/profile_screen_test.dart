@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:symbol_random_game/features/profile/profile_screen.dart';
-import 'package:symbol_random_game/features/profile/perfil_model.dart';
-import 'package:symbol_random_game/features/profile/perfil_service.dart';
-import 'package:symbol_random_game/features/auth/login_screen.dart';
-import 'package:symbol_random_game/features/auth/usuario_service.dart';
+import 'package:symbol_random_game/features/profile/presentation/profile_screen.dart';
+import 'package:symbol_random_game/features/profile/domain/perfil_model.dart';
+import 'package:symbol_random_game/features/profile/data/perfil_service.dart';
+import 'package:symbol_random_game/features/auth/presentation/login_screen.dart';
+import 'package:symbol_random_game/features/auth/data/usuario_service.dart';
 
 class _FakePerfilService extends PerfilService {
   _FakePerfilService(this.profile);
@@ -69,10 +69,10 @@ void main() {
 
     expect(find.text('“Descripción anterior”'), findsOneWidget);
 
-    await tester.tap(find.text('PERSONALIZAR PERFIL'));
+    await tester.tap(find.text('PERSONALIZAR'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'Nueva descripción');
-    await tester.tap(find.text('GUARDAR PERFIL'));
+    await tester.tap(find.text('GUARDAR'));
     await tester.pumpAndSettle();
 
     expect(find.text('“Nueva descripción”'), findsOneWidget);
